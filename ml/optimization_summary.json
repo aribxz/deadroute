@@ -1,0 +1,72 @@
+{
+  "baseline_A": {
+    "Run": "Baseline",
+    "Configuration": "A: with accident count",
+    "MAE": 0.0436508394146399,
+    "RMSE": 0.056247284311036955,
+    "R\u00b2": 0.8854217465639631,
+    "Training Time (seconds)": 3.5673016000000644,
+    "Best Iteration": "",
+    "Parameters": "{\"colsample_bytree\": 0.85, \"learning_rate\": 0.08, \"max_depth\": 6, \"min_child_weight\": 1, \"n_estimators\": 250, \"reg_alpha\": 0.0, \"reg_lambda\": 1.0, \"subsample\": 0.85}"
+  },
+  "optimized": {
+    "Run": "Baseline",
+    "Configuration": "A: with accident count",
+    "MAE": 0.0436508394146399,
+    "RMSE": 0.056247284311036955,
+    "R\u00b2": 0.8854217465639631,
+    "Training Time (seconds)": 3.5673016000000644,
+    "Best Iteration": "",
+    "Parameters": "{\"colsample_bytree\": 0.85, \"learning_rate\": 0.08, \"max_depth\": 6, \"min_child_weight\": 1, \"n_estimators\": 250, \"reg_alpha\": 0.0, \"reg_lambda\": 1.0, \"subsample\": 0.85}"
+  },
+  "configuration": "A: with accident count",
+  "parameters": {
+    "n_estimators": 250,
+    "max_depth": 6,
+    "learning_rate": 0.08,
+    "min_child_weight": 1,
+    "subsample": 0.85,
+    "colsample_bytree": 0.85,
+    "reg_alpha": 0.0,
+    "reg_lambda": 1.0
+  },
+  "changes_vs_baseline_A": {
+    "MAE": {
+      "absolute": 0.0,
+      "percent": 0.0
+    },
+    "RMSE": {
+      "absolute": 0.0,
+      "percent": 0.0
+    },
+    "R2": {
+      "absolute": 0.0,
+      "percent": 0.0
+    },
+    "training_time": {
+      "absolute": 0.0,
+      "percent": 0.0
+    }
+  },
+  "best_tuned_A": {
+    "Run": "Tuned 3",
+    "Configuration": "A: with accident count",
+    "MAE": 0.04358418896426075,
+    "RMSE": 0.05617491229598752,
+    "R\u00b2": 0.885716406989237,
+    "Training Time (seconds)": 4.594569599999886,
+    "Best Iteration": 197,
+    "Parameters": "{\"colsample_bytree\": 0.9, \"learning_rate\": 0.06, \"max_depth\": 7, \"min_child_weight\": 5, \"n_estimators\": 350, \"reg_alpha\": 0.1, \"reg_lambda\": 5.0, \"subsample\": 0.8}"
+  },
+  "best_tuned_B": {
+    "Run": "Tuned 3",
+    "Configuration": "B: without accident count",
+    "MAE": 0.04735843858801624,
+    "RMSE": 0.06130737927644328,
+    "R\u00b2": 0.8638791717261814,
+    "Training Time (seconds)": 4.3136875999998665,
+    "Best Iteration": 184,
+    "Parameters": "{\"colsample_bytree\": 0.9, \"learning_rate\": 0.06, \"max_depth\": 7, \"min_child_weight\": 5, \"n_estimators\": 350, \"reg_alpha\": 0.1, \"reg_lambda\": 5.0, \"subsample\": 0.8}"
+  },
+  "test_evaluation": "Unavailable; test.csv has no target labels."
+}

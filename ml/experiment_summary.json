@@ -1,0 +1,45 @@
+{
+  "winner": "XGBoost Regressor",
+  "accident_count_included": true,
+  "metrics": {
+    "Algorithm": "XGBoost Regressor",
+    "Accident Count Included": "Yes",
+    "MAE": 0.0436508394146399,
+    "RMSE": 0.056247284311036955,
+    "R\u00b2": 0.8854217465639631,
+    "Training Time (seconds)": 5.708315800000037
+  },
+  "best_with_accident_count": {
+    "Algorithm": "XGBoost Regressor",
+    "Accident Count Included": "Yes",
+    "MAE": 0.0436508394146399,
+    "RMSE": 0.056247284311036955,
+    "R\u00b2": 0.8854217465639631,
+    "Training Time (seconds)": 5.708315800000037
+  },
+  "best_without_accident_count": {
+    "Algorithm": "XGBoost Regressor",
+    "Accident Count Included": "No",
+    "MAE": 0.04741626335120002,
+    "RMSE": 0.06135638497884492,
+    "R\u00b2": 0.8636614699430862,
+    "Training Time (seconds)": 4.174627099999725
+  },
+  "best_configuration_mae_improvement_percent_with_count": 7.941207658373657,
+  "per_algorithm_deltas_percent": {
+    "Linear Regression": {
+      "MAE_change_percent": 1.3705200049628596,
+      "RMSE_change_percent": 1.7399814490743257
+    },
+    "Random Forest Regressor": {
+      "MAE_change_percent": 8.942783616976877,
+      "RMSE_change_percent": 9.269259916844511
+    },
+    "XGBoost Regressor": {
+      "MAE_change_percent": 7.941207658373657,
+      "RMSE_change_percent": 8.326925827800212
+    }
+  },
+  "materiality_assessment": "MAE difference >= 5% between best per-configuration models",
+  "test_labels_available": false
+}

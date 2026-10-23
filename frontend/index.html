@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DeadRoute | Road Risk Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d1320;--panel:#141c2e;--panel2:#1a2439;--line:#27334d;--text:#e8edf7;--dim:#8d9ab5;
+--green:#3ecf8e;--amber:#f5b83d;--red:#ef4b4b;--accent:#f5b83d;
+--head:Sora,"Segoe UI",system-ui,sans-serif;--body:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 var(--body);min-height:100vh}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--line);background:#0a0f1a}
+.brand{display:flex;align-items:center;gap:12px}
+.brand svg{width:38px;height:38px}
+.brand h1{margin:0;font:700 28px/1 var(--head);letter-spacing:.5px}
+.brand p{margin:2px 0 0;color:var(--dim);font-size:13px}
+.mode{display:flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--line);border-radius:999px;font-size:13px;background:var(--panel)}
+.mode i{width:9px;height:9px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 0 var(--amber);animation:pulse 2s infinite}
+.mode.live i{background:var(--green);animation:none}.mode.err i{background:var(--red);animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 8px transparent}}
+main{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(320px,1fr);gap:16px;padding:16px 24px;max-width:1400px;margin:0 auto}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.card h2{margin:0 0 10px;font:600 19px/1.2 var(--head);letter-spacing:.4px}
+.sub{color:var(--dim);font-size:13px;margin:0 0 10px}
+.picker{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:12px}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--dim)}
+select,input[type=number]{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:7px 9px;min-width:130px}
+.btn{border:1px solid var(--line);background:var(--panel2);border-radius:6px;padding:8px 14px;cursor:pointer;font-weight:500;transition:background .15s,border-color .15s}
+.btn:hover{border-color:var(--dim)}
+.btn.primary{background:var(--amber);color:#1a1405;border-color:var(--amber);font:700 18px var(--head);letter-spacing:.5px;padding:10px 18px;width:100%}
+.btn.primary:hover{background:#ffc95c}.btn:disabled{opacity:.6;cursor:wait}
+#mapwrap{border-radius:8px;overflow:hidden;border:1px solid var(--line);background:#0a111e}
+#map{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:10px;font-size:13px;color:var(--dim)}
+.legend span::before{content:"";display:inline-block;width:22px;height:5px;border-radius:3px;margin-right:6px;vertical-align:middle;background:var(--c)}
+.routes{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:12px}
+.route{text-align:left;background:var(--panel2);border:1px solid var(--line);border-left:5px solid var(--c);border-radius:8px;padding:10px 12px;cursor:pointer}
+.route[aria-pressed=true]{border-color:var(--c);background:#202c46}
+.route b{font:600 17px var(--head)}.route small{display:block;color:var(--dim)}
+.segs{margin-top:12px;display:grid;gap:6px}
+.seg{display:flex;justify-content:space-between;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px 10px;cursor:pointer;text-align:left;width:100%}
+.seg:hover{border-color:var(--dim)}.seg small{color:var(--dim)}
+.badge{font:600 14px var(--head);padding:2px 9px;border-radius:999px;color:#0d1320;background:var(--c)}
+/* Gauge */
+.gauge{position:relative;width:min(300px,100%);margin:0 auto}
+.gauge svg{width:100%;display:block}
+.gauge .read{position:absolute;left:0;right:0;bottom:2px;text-align:center}
+.gauge .num{font:700 52px/1 var(--head)}
+.level{display:inline-block;margin-top:6px;padding:2px 14px;border-radius:999px;font:700 18px var(--head);color:#0d1320;background:var(--dim)}
+.note{font-size:12.5px;color:var(--dim);text-align:center;margin:10px 0 0}
+.tag{display:inline-block;margin:10px auto 0;padding:3px 10px;border:1px dashed var(--amber);color:var(--amber);border-radius:6px;font-size:12.5px}
+.status{min-height:22px;text-align:center;font-size:13.5px;margin-top:8px}
+.status.error{color:var(--red)}
+/* Form */
+details summary{cursor:pointer;font:600 19px var(--head);letter-spacing:.4px;list-style:none;display:flex;justify-content:space-between}
+details summary::after{content:"+";color:var(--amber);font-size:22px;line-height:1}
+details[open] summary::after{content:"\2013"}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+.fields label output{color:var(--text);font-weight:600}
+.fields select,.fields input[type=number]{min-width:0;width:100%}
+input[type=range]{accent-color:var(--amber);width:100%}
+.row{display:flex;gap:10px;margin-top:10px}.row .btn{flex:1}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chips span{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:2px 9px;font-size:13px}
+.chips b{color:var(--dim);font-weight:400}
+ul.why{margin:6px 0 0;padding-left:18px}ul.why li{margin:3px 0}
+footer{max-width:1400px;margin:0 auto;padding:0 24px 28px;color:var(--dim);font-size:12.5px}
+/* One orchestrated motion: the selected route's lane dashes travel */
+.flow{stroke-dasharray:2 14;animation:flow 1.2s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-32}}
+/* ---- Motion & interaction layer ---- */
+#bg{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
+header,main,footer{position:relative}
+.brand h1{background:linear-gradient(90deg,#e8edf7 20%,var(--amber),#e8edf7 80%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 5s linear infinite}
+@keyframes shine{to{background-position:-200% 0}}
+.brand svg{transition:transform .4s}.brand:hover svg{transform:rotate(-8deg) scale(1.12)}
+.brand svg path:nth-of-type(3){animation:blink 2s infinite}@keyframes blink{50%{opacity:.25}}
+.card{position:relative;overflow:hidden;animation:rise .7s cubic-bezier(.2,.8,.2,1) both;transition:border-color .25s,box-shadow .25s}
+.card:hover{border-color:#3a4a6e;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+.card::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;background:radial-gradient(280px circle at var(--mx,50%) var(--my,50%),rgba(245,184,61,.10),transparent 70%)}
+.card:hover::before{opacity:1}
+.col:nth-child(2) .card:nth-child(1){animation-delay:.06s}.col:nth-child(2) .card:nth-child(2){animation-delay:.12s}.col:nth-child(2) .card:nth-child(3){animation-delay:.24s}
+@keyframes rise{from{opacity:0;transform:translateY(24px) scale(.98)}}
+.btn{position:relative;overflow:hidden;transition:background .15s,border-color .15s,transform .15s}
+.btn:hover{transform:translateY(-1px)}.btn:active{transform:scale(.97)}
+.btn.primary{animation:glow 2.4s infinite}
+@keyframes glow{0%{box-shadow:0 0 0 0 rgba(245,184,61,.55)}70%,100%{box-shadow:0 0 0 14px transparent}}
+.rip{position:absolute;border-radius:50%;background:rgba(255,255,255,.35);transform:scale(0);animation:rip .6s ease-out forwards;pointer-events:none}
+@keyframes rip{to{transform:scale(1);opacity:0}}
+.route,.seg{position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s,border-color .2s}
+.route:hover{transform:translateY(-3px);box-shadow:0 6px 18px -6px var(--c)}
+.route[aria-pressed=true]{box-shadow:0 0 0 1px var(--c),0 6px 22px -8px var(--c)}
+.seg{animation:rise .45s both;animation-delay:calc(var(--i,0)*70ms)}.seg:hover{transform:translateX(4px)}
+.meter{height:5px;border-radius:3px;background:#0d1320;margin-top:6px;overflow:hidden}
+.meter i{display:block;height:100%;width:var(--w);background:var(--c);border-radius:3px;animation:grow .8s cubic-bezier(.2,.8,.2,1) both}
+@keyframes grow{from{width:0}}
+.best{display:inline-block;margin-top:4px;font:600 12px var(--head);color:var(--green);border:1px solid var(--green);border-radius:999px;padding:0 8px;font-style:normal}
+#mapwrap{position:relative}
+.road{transition:stroke .2s}.road[data-e]{cursor:pointer}.road:hover,.road.hot{stroke:#3d4f78}
+.node{cursor:pointer}.nd{transition:stroke-width .2s,transform .2s;transform-box:fill-box;transform-origin:center}.node:hover .nd{transform:scale(1.35);stroke-width:5}
+.draw{stroke-dasharray:1;animation:draw 1s ease-out both}@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+.fx{--rain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='80'%3E%3Cpath d='M6 4l-3 14M26 40l-3 14M14 62l-2 12' stroke='%23a8c4ff' stroke-opacity='.45' stroke-width='1.2'/%3E%3C/svg%3E");position:absolute;inset:0;pointer-events:none}
+.fx::before,.fx::after{content:"";position:absolute;inset:0;opacity:0;transition:opacity .6s}
+.fx.rainy::before{opacity:1;background:var(--rain) 0 0/40px 80px,var(--rain) 0 0/60px 120px;animation:rain .5s linear infinite}
+@keyframes rain{to{background-position:0 80px,0 120px}}
+.fx.foggy::before{opacity:1;background:radial-gradient(60% 50% at 30% 40%,rgba(200,210,230,.32),transparent),radial-gradient(50% 60% at 75% 65%,rgba(200,210,230,.26),transparent);animation:fog 8s ease-in-out infinite alternate}
+@keyframes fog{to{transform:translateX(8%) scale(1.15)}}
+.fx.night::after,.fx.dim::after{opacity:1;background:radial-gradient(circle at 50% 50%,transparent 15%,rgba(2,4,20,.7))}.fx.dim::after{opacity:.5}
+#fxTag{position:absolute;left:10px;top:8px;font-size:12px;color:var(--dim);background:rgba(10,15,26,.7);border:1px solid var(--line);border-radius:999px;padding:1px 10px;text-transform:capitalize;pointer-events:none}
+#tip{position:absolute;left:0;top:0;pointer-events:none;opacity:0;transition:opacity .15s;background:#0a0f1a;border:1px solid var(--amber);border-radius:6px;padding:4px 9px;font-size:12.5px;white-space:nowrap;z-index:5}
+.gauge.alarm{animation:shake .5s}@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.num{transition:color .4s,text-shadow .4s}
+.chips span{animation:pop .35s cubic-bezier(.3,1.6,.5,1) both;animation-delay:calc(var(--i,0)*35ms)}@keyframes pop{from{opacity:0;transform:scale(.6)}}
+.bar{display:grid;grid-template-columns:1fr auto;gap:2px 10px;margin:8px 0;font-size:13.5px}
+.bar i{grid-column:1/-1;height:6px;border-radius:3px;background:#0d1320;position:relative;overflow:hidden}
+.bar i::after{content:"";position:absolute;inset:0;width:var(--w);border-radius:3px;background:var(--c);animation:grow .8s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0)*80ms)}
+.bar em{font-style:normal;font-weight:600;color:var(--c)}
+.live{flex-direction:row;align-items:center;gap:8px;margin-top:12px;cursor:pointer}.live input{accent-color:var(--amber);width:16px;height:16px}
+/* ---- Layout v2: full-screen map hero, then risk, then conditions ---- */
+html{scroll-behavior:smooth;scroll-snap-type:y proximity}
+header{position:fixed;top:0;left:0;right:0;z-index:20;background:rgba(10,15,26,.55);backdrop-filter:blur(10px);border-bottom-color:rgba(39,51,77,.6)}
+main{display:block;max-width:none;margin:0;padding:0}
+.brand h1{font-size:24px;letter-spacing:0}.card h2,details summary{font-size:16px;letter-spacing:0}
+.gauge .num{font-size:56px}.level{font-size:14px}.btn.primary{font-size:15px;letter-spacing:0}.route b{font-size:14px}.badge{font-size:12px}
+.glass{background:rgba(14,21,36,.74);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:12px;padding:14px}
+#hero{position:relative;height:100vh;min-height:560px;overflow:hidden;scroll-snap-align:start}
+#hero #mapwrap{position:absolute;inset:0;border:0;border-radius:0}
+#map{height:100%}
+.hud{position:absolute;z-index:6;overflow:auto}
+.hud.left{left:20px;top:78px;width:min(370px,calc(100% - 40px));max-height:calc(100% - 100px)}
+.hud.right{right:20px;top:78px;width:min(340px,calc(100% - 40px));max-height:55vh}
+.hud.right:has(#segs:empty){display:none}
+.hud select{min-width:0;width:100%}.hud label{flex:1}.hud .segs{margin:0}
+.routes{grid-template-columns:1fr}.route{padding:8px 10px}
+#hero .legend{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);z-index:6;margin:0;padding:8px 18px;border-radius:999px;white-space:nowrap}
+.cue{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:6;color:var(--text);text-decoration:none;font:600 14px var(--head);animation:bob 1.6s ease-in-out infinite}
+@keyframes bob{50%{transform:translate(-50%,6px)}}
+#fxTag{left:20px;top:auto;bottom:20px}
+.panel{min-height:100vh;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:20px;padding:90px 24px 60px;scroll-snap-align:start}
+.panel .card{width:min(560px,100%);animation:none}
+.gauge{width:min(380px,100%)}
+.reveal{opacity:0;transform:translateY(40px)}
+.panel .card.reveal{transition:opacity .7s,transform .7s,border-color .25s,box-shadow .25s}
+.reveal.in{opacity:1;transform:none}.panel .card.reveal:nth-child(2){transition-delay:.12s,.12s,0s,0s}
+#mini{position:fixed;right:20px;bottom:20px;z-index:15;display:flex;gap:10px;align-items:center;cursor:pointer;color:var(--text);border-left:4px solid var(--c,var(--dim));opacity:0;pointer-events:none;transform:translateY(20px);transition:opacity .3s,transform .3s}
+#mini.show{opacity:1;pointer-events:auto;transform:none}#mini b{font:700 20px var(--head)}#mini span{font-size:13px;color:var(--dim)}
+@media(max-width:980px){.hud.right{display:none}.hud.left{left:10px;right:10px;width:auto;top:70px;max-height:46vh}#hero .legend{width:calc(100% - 20px);border-radius:12px;white-space:normal;justify-content:center;gap:6px 14px;font-size:12px;bottom:46px}}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
+#plan .card{width:min(640px,100%)}
+#plan .picker label{flex:1}#plan select{min-width:0;width:100%}
+#plan .routes{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+#plan .card:has(#segs:empty){display:none}#plan .segs{margin:0}
+@media(max-width:980px){main{grid-template-columns:1fr;padding:12px}header{padding:12px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+
+/* Consistent interaction and form treatment */
+button, select, input { font: inherit; }
+select, input[type="number"] { min-height: 42px; }
+.btn, .route, .seg { color: var(--text); }
+.btn.primary { color: #1a1405; }
+.btn:focus-visible, .route:focus-visible, .seg:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+#mode { max-width: min(100%, 290px); }
+#modeText { overflow-wrap: anywhere; }
+.status { padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; }
+.status.error { background: rgba(239,75,75,.08); border-color: rgba(239,75,75,.35); }
+.panel { scroll-margin-top: 74px; }
+.fields label { color: var(--text); font-weight: 500; }
+.fields select, .fields input[type="number"] { color: var(--text); }
+#conditions .card, #risk .card, #plan .card { box-shadow: 0 16px 44px rgba(0,0,0,.18); }
+@media (max-width: 640px) {
+  header { padding: 12px 16px; }
+  .brand h1 { font-size: 21px; }
+  .brand p { font-size: 12px; }
+  .mode { padding: 5px 9px; font-size: 12px; }
+  .panel { min-height: auto; padding: 86px 14px 48px; }
+  .fields { grid-template-columns: 1fr; }
+  #hero { min-height: 620px; }
+  #hero .legend { bottom: 48px; }
+  .cue { bottom: 12px; }
+  #fxTag { left: 12px; bottom: 12px; }
+  footer { padding: 0 16px 24px; }
+}
+
+
+/* Requested compact, scroll-aware header and refined controls */
+header#siteHeader { position: fixed; inset: 0 0 auto; z-index: 20; display: flex; align-items: center; justify-content: space-between; padding: 20px 28px; border: 0; background: transparent; backdrop-filter: none; pointer-events: none; transition: transform .28s ease, opacity .28s ease; }
+header#siteHeader.is-hidden { transform: translateY(-110%); opacity: 0; }
+header#siteHeader .brand, header#siteHeader .mode { pointer-events: auto; }
+header#siteHeader .brand h1 { font-size: 22px; text-shadow: 0 2px 14px rgba(0,0,0,.8); }
+header#siteHeader .mode { background: rgba(10,15,26,.78); backdrop-filter: blur(12px); box-shadow: 0 8px 24px rgba(0,0,0,.22); }
+#fxTag { top: 78px; bottom: auto; left: auto; right: 20px; z-index: 7; max-width: calc(100% - 40px); padding: 6px 12px; border-radius: 999px; background: rgba(10,15,26,.82); color: var(--text); font-size: 12px; line-height: 1.4; text-transform: none; white-space: nowrap; }
+#plan .picker { align-items: stretch; }
+#plan .picker label { min-width: 0; gap: 8px; color: var(--text); font-weight: 600; }
+#plan select, .fields select { appearance: none; padding: 11px 38px 11px 13px; border: 1px solid #354361; border-radius: 10px; color: var(--text); background-color: #172238; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%23aab7d0' d='m3.5 5.75 4.5 4.5 4.5-4.5z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; transition: border-color .18s, box-shadow .18s, background-color .18s; }
+#plan select:hover, .fields select:hover { border-color: #60749b; background-color: #1b2942; }
+#plan select:focus-visible, .fields select:focus-visible { outline: none; border-color: var(--amber); box-shadow: 0 0 0 3px rgba(245,184,61,.18); }
+#plan select option, .fields select option { color: var(--text); background: #141c2e; }
+.pick-btn { width: 100%; min-height: 38px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; color: var(--dim); background: rgba(26,36,57,.75); font-weight: 600; cursor: pointer; transition: all .18s; }
+.pick-btn:hover { border-color: var(--amber); color: var(--text); }
+.pick-btn.active { border-color: var(--amber); color: #191304; background: var(--amber); box-shadow: 0 0 0 3px rgba(245,184,61,.14); }
+.pick-hint { min-height: 20px; margin: -2px 0 12px; color: var(--dim); font-size: 12px; }
+#mapwrap.picking .node { cursor: crosshair; }
+#conditions .card { padding: 22px; border-color: #303e5c; border-radius: 16px; background: linear-gradient(145deg, rgba(20,28,46,.98), rgba(15,23,39,.98)); }
+#conditions details summary { align-items: center; padding: 4px 0 14px; border-bottom: 1px solid var(--line); font-size: 18px; }
+#conditions details summary::after { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel2); }
+#conditions .fields { gap: 14px; margin: 18px 0; }
+#conditions .fields label { gap: 7px; font-size: 12px; letter-spacing: .02em; }
+#conditions .fields select, #conditions .fields input[type=number] { min-height: 44px; border-radius: 10px; }
+#conditions input[type=range] { min-height: 24px; }
+#conditions .live { color: var(--dim); font-size: 12px; }
+#conditions .btn.primary { min-height: 48px; border-radius: 11px; }
+#conditions .row .btn { min-height: 42px; border-radius: 10px; }
+footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; max-width: none; padding: 18px 28px 24px; border-top: 1px solid rgba(39,51,77,.65); color: var(--dim); font-size: 13px; }
+footer span:first-child { font-weight: 700; color: var(--text); letter-spacing: .03em; }
+footer span:last-child { color: var(--dim); }
+@media (max-width: 640px) {
+  header#siteHeader { padding: 16px 16px; }
+  header#siteHeader .brand h1 { font-size: 20px; }
+  #fxTag { top: 70px; bottom: auto; right: 12px; left: auto; max-width: calc(100% - 24px); }
+  #plan .picker { display: grid; grid-template-columns: 1fr; }
+  #plan .picker label { width: 100%; }
+  #plan #swap { grid-column: 1; }
+  #conditions .card { padding: 18px 14px; }
+  footer { padding: 16px; font-size: 12px; }
+}
+
+</style>
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+<header id="siteHeader">
+  <div class="brand"><h1>DeadRoute</h1></div>
+  <div id="mode" class="mode"><i></i><span id="modeText">Connecting to model</span></div>
+</header>
+
+<main>
+  <section id="hero" aria-label="Route map">
+    <div id="mapwrap"><svg id="map" viewBox="0 0 800 480" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Simulated road network"></svg><div id="fx" class="fx"></div><span id="fxTag"></span><div id="tip" role="tooltip"></div></div>
+    <div class="legend glass">
+      <span style="--c:var(--green)">Low illustrative score</span>
+      <span style="--c:var(--amber)">Moderate illustrative score</span>
+      <span style="--c:var(--red)">High illustrative score</span>
+    </div>
+    <a class="cue" href="#plan">Scroll for routes &darr;</a>
+  </section>
+
+  <section id="plan" class="panel">
+    <div class="card reveal" aria-labelledby="mapTitle">
+      <h2 id="mapTitle">Route map (hypothetical road network)</h2>
+      <p class="sub">Simulated data. Route colours come from an illustrative calculation, not real accident records, live traffic, or a real safest-route search.</p>
+      <div class="picker">
+        <label>Start<select id="start" aria-label="Starting point"></select><button class="pick-btn" id="pickStart" type="button" aria-pressed="false">Pick start on map</button></label>
+        <label>Destination<select id="end" aria-label="Destination point"></select><button class="pick-btn" id="pickEnd" type="button" aria-pressed="false">Pick destination on map</button></label>
+        <button class="btn" id="swap" type="button" title="Swap start and destination">Swap</button>
+      </div>
+      <p class="pick-hint" id="pickHint" aria-live="polite">Choose a map-pick button, then select a point on the map.</p>
+      <div class="routes" id="routes"></div>
+    </div>
+    <div class="card reveal" aria-label="Segments of the selected route"><div class="segs" id="segs"></div></div>
+  </section>
+
+  <section id="risk" class="panel">
+    <div class="card reveal" aria-labelledby="riskTitle">
+      <h2 id="riskTitle">Predicted risk</h2>
+      <div class="gauge">
+        <svg viewBox="0 0 200 118" aria-hidden="true">
+          <path d="M20 100A80 80 0 0 1 180 100" fill="none" stroke="#27334d" stroke-width="16" stroke-linecap="round"/>
+          <path id="arc" d="M20 100A80 80 0 0 1 180 100" fill="none" stroke="var(--dim)" stroke-width="16" stroke-linecap="round" stroke-dasharray="251.33" stroke-dashoffset="251.33" style="transition:stroke-dashoffset .8s ease,stroke .4s"/>
+        </svg>
+        <div class="read"><div class="num" id="num">--</div></div>
+      </div>
+      <div style="text-align:center"><span class="level" id="level">No prediction yet</span></div>
+      <div style="text-align:center"><span class="tag" id="srcTag" hidden></span></div>
+      <p class="note">Model score from a synthetic dataset; not a calibrated real-world accident probability.</p>
+      <div class="status" id="status" role="status" aria-live="polite">Set the road conditions and press Predict risk.</div>
+    </div>
+    <div class="card reveal" aria-labelledby="whyTitle">
+      <h2 id="whyTitle">Why this score?</h2>
+      <div class="chips" id="chips"></div>
+      <div id="why" class="sub">Run a prediction to see the inputs and explanation.</div>
+    </div>
+  </section>
+
+  <section id="conditions" class="panel">
+    <div class="card reveal">
+      <details open>
+        <summary>Road conditions</summary>
+        <div class="fields" id="fields"></div>
+        <button class="btn primary" id="predict" type="button">Predict risk</button>
+        <div class="row">
+          <button class="btn" id="demo" type="button">Load demo scenario</button>
+          <button class="btn" id="reset" type="button">Reset</button>
+        </div>
+        <label class="live"><input type="checkbox" id="live" checked> Live update as I adjust conditions</label>
+      </details>
+    </div>
+  </section>
+</main>
+<button id="mini" class="glass" type="button" aria-label="Jump to predicted risk"><b id="miniNum">--</b><span id="miniLvl">No prediction yet</span></button>
+<footer><span>Arib</span><span>AI Build Arena Demo</span></footer>
+
+<script>
+/* =====================================================================
+   1. CONFIGURATION  (the only block you should need to edit)
+   ===================================================================== */
+const USE_MOCK_DATA = false;                         // live model predictions are the default
+const API_BASE = "http://127.0.0.1:5000";
+const API_URL = API_BASE + "/predict";
+const REQUEST_TIMEOUT_MS = 8000;
+const INCLUDE_NUM_REPORTED_ACCIDENTS = true;         // baseline artifact requires this feature
+const THRESHOLDS = { moderate: 0.33, high: 0.66 };   // score >= value moves it into that band
+
+/* Frontend controls mirror the verified training schema. The active subset is synchronized from /metadata. */
+const FEATURES = [
+  { key:"road_type", label:"Road type", type:"select", options:["urban","rural","highway"] },
+  { key:"num_lanes", label:"Number of lanes", type:"number", min:1, max:4, step:1 },
+  { key:"curvature", label:"Curvature", type:"range", min:0, max:1, step:0.01 },
+  { key:"speed_limit", label:"Speed limit", type:"number", min:25, max:70, step:5 },
+  { key:"lighting", label:"Lighting", type:"select", options:["daylight","dim","night"] },
+  { key:"weather", label:"Weather", type:"select", options:["clear","rainy","foggy"] },
+  { key:"road_signs_present", label:"Road signs present", type:"bool" },
+  { key:"public_road", label:"Public road", type:"bool" },
+  { key:"time_of_day", label:"Time of day", type:"select", options:["morning","afternoon","evening"] },
+  { key:"holiday", label:"Holiday", type:"bool" },
+  { key:"school_season", label:"School season", type:"bool" },
+  { key:"num_reported_accidents", label:"Reported accidents", type:"number", min:0, max:7, step:1, optional:true }
+];
+let ACTIVE = FEATURES.filter(f => !f.optional || INCLUDE_NUM_REPORTED_ACCIDENTS);
+let BACKEND_METADATA = null;
+
+const DEFAULTS = { road_type:"urban", num_lanes:2, curvature:0.35, speed_limit:40, lighting:"daylight", weather:"clear",
+  road_signs_present:true, public_road:true, time_of_day:"afternoon", holiday:false, school_season:true, num_reported_accidents:0 };
+const DEMO_SCENARIO = { road_type:"rural", num_lanes:2, curvature:0.8, speed_limit:60, lighting:"night", weather:"rainy",
+  road_signs_present:false, public_road:true, time_of_day:"evening", holiday:true, school_season:false, num_reported_accidents:1 };
+
+/* =====================================================================
+   2. API INTEGRATION  (real backend path)
+   ===================================================================== */
+// Single place that builds the request body. Edit FEATURES / this function to match the saved model.
+function buildRequestBody(values) {
+  const body = {};
+  ACTIVE.forEach(f => { body[f.key] = values[f.key]; });
+  return body;
+}
+
+async function callBackend(values) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(buildRequestBody(values)),
+      signal: ctl.signal
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || ("Backend returned HTTP " + res.status));
+    if (typeof data.accident_risk !== "number" || !Number.isFinite(data.accident_risk)) throw new Error("Response has no finite numeric accident_risk field");
+    return data.accident_risk;
+  } catch (e) {
+    if (e.name === "AbortError") throw new Error("Backend did not respond within " + REQUEST_TIMEOUT_MS / 1000 + " s");
+    throw e;
+  } finally { clearTimeout(timer); }
+}
+
+async function connectBackend() {
+  try {
+    const [healthRes, metadataRes] = await Promise.all([
+      fetch(API_BASE + "/health", { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) }),
+      fetch(API_BASE + "/metadata", { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
+    ]);
+    const health = await healthRes.json();
+    const metadata = await metadataRes.json();
+    if (!healthRes.ok || !health.model_loaded) throw new Error("The trained model is not loaded");
+    if (!metadataRes.ok || !Array.isArray(metadata.required_features)) throw new Error("Model metadata could not be loaded");
+    const known = new Set(FEATURES.map(f => f.key));
+    const unknown = metadata.required_features.filter(key => !known.has(key));
+    if (unknown.length) throw new Error("Frontend has no input controls for: " + unknown.join(", "));
+    ACTIVE = FEATURES.filter(f => metadata.required_features.includes(f.key));
+    BACKEND_METADATA = metadata;
+    buildForm(); writeForm(DEFAULTS); setMode("live");
+    setStatus("Connected to the trained XGBoost model.");
+    return true;
+  } catch (error) {
+    setMode("err");
+    setStatus("Backend unavailable. Start it with `python app.py` from the project folder, then refresh this page.", "error");
+    return false;
+  }
+}
+
+/* =====================================================================
+   3. MOCK DATA  (illustrative only, NOT the trained ML model)
+   ===================================================================== */
+// Returns {score, reasons}. Hand-written weights so the demo is deterministic and easy to explain.
+function mockCalc(v) {
+  const parts = [];
+  const add = (amt, text) => { parts.push({ amt, text }); return amt; };
+  let s = 0.10;
+  s += add({urban:.06, rural:.14, highway:.10}[v.road_type] ?? .08, "Road type: " + v.road_type);
+  s += add(v.curvature * 0.28, "Curvature of " + Number(v.curvature).toFixed(2));
+  s += add(Math.max(0, v.speed_limit - 30) * 0.003, "Speed limit of " + v.speed_limit + " km/h");
+  s += add({daylight:0, dim:.07, night:.13}[v.lighting] ?? 0, "Lighting: " + v.lighting);
+  s += add({clear:0, rainy:.08, foggy:.11}[v.weather] ?? 0, "Weather: " + v.weather);
+  s += add(v.road_signs_present ? -.03 : .04, v.road_signs_present ? "Road signs are present" : "No road signs");
+  s += add(v.num_lanes >= 3 ? -.02 : .02, v.num_lanes + " lane(s)");
+  s += add({morning:.01, afternoon:0, evening:.05}[v.time_of_day] ?? 0, "Time of day: " + v.time_of_day);
+  s += add(v.holiday ? .02 : 0, "Holiday period");
+  s += add((v.num_reported_accidents || 0) * 0.04, "Reported accidents: " + (v.num_reported_accidents || 0));
+  return { score: Math.min(.98, Math.max(.02, Math.round(s * 100) / 100)), parts };
+}
+const mockPredict = v => new Promise(res => setTimeout(() => res(mockCalc(v).score), 350));
+
+/* Hypothetical road network (pixel coordinates in the 800x480 map). Every value here is invented. */
+const NODES = {
+  A:{n:"Campus Gate",x:70,y:390}, B:{n:"Market Square",x:250,y:250}, C:{n:"Riverside Hub",x:420,y:385},
+  D:{n:"Station Road",x:420,y:145}, E:{n:"Hillcrest",x:600,y:235}, F:{n:"Industrial Park",x:735,y:400}
+};
+const seg = (a, b, over) => ({ a, b, c: { ...DEFAULTS, ...over } });
+const EDGES = [
+  seg("A","B",{road_type:"urban",num_lanes:2,curvature:.25,speed_limit:35}),
+  seg("A","C",{road_type:"rural",num_lanes:2,curvature:.6,speed_limit:55,lighting:"dim",road_signs_present:false}),
+  seg("B","C",{road_type:"urban",num_lanes:3,curvature:.2,speed_limit:40}),
+  seg("B","D",{road_type:"urban",num_lanes:2,curvature:.45,speed_limit:45,weather:"foggy"}),
+  seg("C","E",{road_type:"highway",num_lanes:4,curvature:.1,speed_limit:70,lighting:"daylight"}),
+  seg("C","F",{road_type:"rural",num_lanes:2,curvature:.75,speed_limit:60,lighting:"night",weather:"rainy",road_signs_present:false}),
+  seg("D","E",{road_type:"highway",num_lanes:3,curvature:.3,speed_limit:65}),
+  seg("E","F",{road_type:"urban",num_lanes:2,curvature:.4,speed_limit:40,school_season:true})
+];
+EDGES.forEach(e => { e.len = Math.hypot(NODES[e.a].x - NODES[e.b].x, NODES[e.a].y - NODES[e.b].y); e.score = mockCalc(e.c).score; });
+
+/* =====================================================================
+   4. APP LOGIC
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const state = { routes: [], sel: 0, pickTarget: null };
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;   // skip JS/SMIL motion if the user asked for less
+let ambient = "#f5b83d", shown = 0, tw = 0, lastBand = null;            // particle colour, gauge value shown, tween token, last risk band
+const mouse = { x: -999, y: -999 };
+const vis = {};                                   // which sections are on screen (filled by an IntersectionObserver)
+const syncMini = () => $("#mini").classList.toggle("show", lastBand !== null && !vis.risk);   // floating score pill: only after a prediction, and only while the gauge is off-screen
+const hexOf = s => ({ Low: "#3ecf8e", Moderate: "#f5b83d", High: "#ef4b4b" })[band(s)];
+function tween(to) {                      // count the gauge number up with an ease-out curve
+  const from = shown, t0 = performance.now(), ms = REDUCED ? 0 : 900, me = ++tw;
+  (function f(t) {
+    if (me !== tw) return;                // a newer prediction took over, stop this loop
+    const k = ms ? Math.min(1, (t - t0) / ms) : 1, e = 1 - Math.pow(1 - k, 3);
+    shown = from + (to - from) * e; $("#num").textContent = Math.round(shown * 100) + "%"; $("#miniNum").textContent = $("#num").textContent;
+    if (k < 1) requestAnimationFrame(f);
+  })(t0);
+}
+const dimRoutes = i => $("#map").querySelectorAll("[data-r]").forEach(el => el.style.opacity = i === null || +el.dataset.r === i ? "" : ".12");
+const hotEdge = (k, on) => { const el = $("#map").querySelector(`[data-e="${k}"]`); if (el) el.classList.toggle("hot", on); };
+function updateFx() {                     // weather/lighting overlay on the map follows the form
+  const w = $("#f_weather"), l = $("#f_lighting"); if (!w || !l) return;
+  $("#fx").className = "fx " + w.value + " " + l.value; $("#fxTag").textContent = w.value + " | " + l.value;
+}
+function startBg() {                      // drifting particles that flee the cursor; colour tracks the risk band
+  if (REDUCED) return;
+  const cv = $("#bg"), cx = cv.getContext("2d"); let W, H, dots = [];
+  const size = () => { W = cv.width = innerWidth; H = cv.height = innerHeight;
+    dots = Array.from({ length: Math.min(70, W / 18 | 0) }, () => ({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - .5) * .4, vy: (Math.random() - .5) * .4 })); };
+  addEventListener("resize", size); size();
+  (function tick() {
+    cx.clearRect(0, 0, W, H);
+    dots.forEach((p, i) => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0 || p.x > W) p.vx *= -1; if (p.y < 0 || p.y > H) p.vy *= -1;
+      const dx = p.x - mouse.x, dy = p.y - mouse.y, d = Math.hypot(dx, dy);
+      if (d > 0 && d < 140) { p.x += dx / d * 1.2; p.y += dy / d * 1.2; }
+      cx.globalAlpha = .7; cx.fillStyle = ambient; cx.beginPath(); cx.arc(p.x, p.y, 1.8, 0, 6.283); cx.fill();
+      for (let j = i + 1; j < dots.length; j++) { const q = dots[j], l = Math.hypot(p.x - q.x, p.y - q.y);
+        if (l < 120) { cx.globalAlpha = (1 - l / 120) * .25; cx.strokeStyle = ambient; cx.beginPath(); cx.moveTo(p.x, p.y); cx.lineTo(q.x, q.y); cx.stroke(); } }
+    });
+    requestAnimationFrame(tick);
+  })();
+}
+const band = s => s >= THRESHOLDS.high ? "High" : s >= THRESHOLDS.moderate ? "Moderate" : "Low";
+const colorOf = s => ({ Low:"var(--green)", Moderate:"var(--amber)", High:"var(--red)" })[band(s)];
+const edgeOf = (a, b) => EDGES.find(e => (e.a === a && e.b === b) || (e.a === b && e.b === a));
+
+/* ---- form ---- */
+function buildForm() {
+  $("#fields").innerHTML = ACTIVE.map(f => {
+    let ctl;
+    if (f.type === "select") ctl = `<select id="f_${f.key}">${f.options.map(o => `<option>${o}</option>`).join("")}</select>`;
+    else if (f.type === "bool") ctl = `<select id="f_${f.key}"><option value="true">Yes</option><option value="false">No</option></select>`;
+    else if (f.type === "range") ctl = `<input id="f_${f.key}" type="range" min="${f.min}" max="${f.max}" step="${f.step}">`;
+    else ctl = `<input id="f_${f.key}" type="number" min="${f.min}" max="${f.max}" step="${f.step}">`;
+    const out = f.type === "range" ? ` <output id="o_${f.key}"></output>` : "";
+    return `<label>${f.label}${out}${ctl}</label>`;
+  }).join("");
+  const cur = $("#f_curvature");
+  if (cur) cur.addEventListener("input", () => $("#o_curvature").textContent = Number(cur.value).toFixed(2));
+}
+function writeForm(v) {
+  ACTIVE.forEach(f => { $("#f_" + f.key).value = String(v[f.key]); });
+  if ($("#f_curvature")) $("#o_curvature").textContent = Number(v.curvature).toFixed(2);
+  updateFx();
+}
+function readForm() {
+  const v = {};
+  ACTIVE.forEach(f => {
+    const raw = $("#f_" + f.key).value;
+    v[f.key] = f.type === "bool" ? raw === "true" : (f.type === "number" || f.type === "range") ? Number(raw) : raw;
+  });
+  return v;
+}
+
+/* ---- prediction ---- */
+function setStatus(text, cls) { const s = $("#status"); s.textContent = text; s.className = "status " + (cls || ""); }
+function setMode(kind) {
+  const m = $("#mode"); m.className = "mode " + (kind === "live" ? "live" : kind === "err" ? "err" : "");
+  $("#modeText").textContent = USE_MOCK_DATA ? "Demo Mode (mock predictions)" :
+    kind === "live" ? "Trained model connected" : kind === "err" ? "Backend unavailable" : "Connecting to model";
+}
+async function predict() {
+  const v = readForm(), btn = $("#predict");
+  btn.disabled = true; setStatus("Predicting...");
+  try {
+    const score = USE_MOCK_DATA ? await mockPredict(v) : await callBackend(v);
+    showResult(score, v);
+    setStatus(USE_MOCK_DATA ? "Demo prediction ready." : "Prediction received from the backend.");
+    setMode("live");
+  } catch (e) {
+    setStatus("Prediction failed: " + e.message + ". Check that the backend is running at " + API_URL + ". No fallback value is shown.", "error");
+    setMode("err");
+  } finally { btn.disabled = false; }
+}
+function showResult(score, v) {
+  const b = band(score), c = colorOf(score);
+  tween(score);
+  $("#arc").style.strokeDashoffset = 251.33 * (1 - Math.min(1, score));
+  $("#arc").style.stroke = c; $("#arc").style.filter = `drop-shadow(0 0 6px ${c})`;
+  $("#num").style.color = c; $("#num").style.textShadow = `0 0 18px ${c}`;
+  ambient = hexOf(score);
+  const g = $(".gauge"); g.classList.remove("alarm");
+  if (b === "High" && lastBand !== "High") { void g.offsetWidth; g.classList.add("alarm"); }   // reading offsetWidth forces a reflow so the shake can replay
+  lastBand = b; syncMini();
+  const lv = $("#level"); lv.textContent = b + " model risk score"; lv.style.background = c; $("#miniLvl").textContent = b; $("#mini").style.setProperty("--c", c);
+  const tag = $("#srcTag"); tag.hidden = false;
+  tag.textContent = USE_MOCK_DATA ? "DEMO: illustrative calculation, not the trained model" : "Source: backend /predict";
+  tag.style.cssText = USE_MOCK_DATA ? "" : "border-color:var(--green);color:var(--green)";
+  $("#chips").innerHTML = ACTIVE.map((f, i) => {
+    const val = f.type === "bool" ? (v[f.key] ? "Yes" : "No") : v[f.key];
+    return `<span style="--i:${i}"><b>${f.label}:</b> ${val}</span>`;
+  }).join("");
+  if (USE_MOCK_DATA) {
+    const top = mockCalc(v).parts.filter(p => Math.abs(p.amt) >= 0.03).sort((a, b) => b.amt - a.amt);
+    $("#why").innerHTML = `<b>Illustrative explanation (demo mode).</b> These rules are hand-written for the demo and do not come from the trained model. Red bars raise the demo score, green bars lower it.` +
+      (top.map((p, i) => `<div class="bar" style="--i:${i};--c:${p.amt > 0 ? "var(--red)" : "var(--green)"};--w:${Math.min(100, Math.abs(p.amt) / 0.2 * 100)}%"><span>${p.text}</span><em>${p.amt > 0 ? "+" : "-"}${Math.round(Math.abs(p.amt) * 100)} pts</em><i></i></div>`).join("") || "<p>No single condition stands out.</p>");
+  } else {
+    $("#why").innerHTML = "The backend returned only a risk score for the inputs above. It supplied no feature-level explanation, so none is shown.";
+  }
+}
+function resetResult() {
+  tw++; shown = 0; lastBand = null; syncMini(); $("#miniNum").textContent = "--"; $("#miniLvl").textContent = "No prediction yet"; ambient = "#f5b83d"; $("#arc").style.filter = ""; $("#num").style.color = ""; $("#num").style.textShadow = "";
+  $("#num").textContent = "--"; $("#arc").style.strokeDashoffset = 251.33; $("#arc").style.stroke = "var(--dim)";
+  $("#level").textContent = "No prediction yet"; $("#level").style.background = "var(--dim)";
+  $("#srcTag").hidden = true; $("#chips").innerHTML = "";
+  $("#why").textContent = "Run a prediction to see the inputs and explanation.";
+  setStatus("Set the road conditions and press Predict risk."); setMode();
+}
+
+/* ---- map + routes ---- */
+function findRoutes(s, t) {
+  const found = [];
+  (function dfs(n, path) {
+    if (n === t) { found.push(path.slice()); return; }
+    EDGES.forEach(e => {
+      const o = e.a === n ? e.b : e.b === n ? e.a : null;
+      if (o && !path.includes(o)) { path.push(o); dfs(o, path); path.pop(); }
+    });
+  })(s, [s]);
+  return found.map(p => {
+    const es = p.slice(1).map((n, i) => edgeOf(p[i], n));
+    const len = es.reduce((a, e) => a + e.len, 0);
+    const score = es.reduce((a, e) => a + e.score * e.len, 0) / len;   // length-weighted average
+    return { nodes: p, es, len, score };
+  }).sort((a, b) => a.len - b.len).slice(0, 3);
+}
+function drawMap() {
+  const P = n => NODES[n].x + "," + NODES[n].y;
+  let g = `<defs><filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#131c2d"/></pattern></defs><rect width="800" height="480" fill="url(#grid)"/>`;
+  EDGES.forEach((e, k) => g += `<line class="road" data-e="${k}" data-tip="${NODES[e.a].n} to ${NODES[e.b].n}: simulated ${Math.round(e.score * 100)}% (${band(e.score)}). Click to load its conditions." x1="${NODES[e.a].x}" y1="${NODES[e.a].y}" x2="${NODES[e.b].x}" y2="${NODES[e.b].y}" stroke="#222d45" stroke-width="16" stroke-linecap="round"/>`);
+  if (!REDUCED) EDGES.filter(e => e.score >= THRESHOLDS.high).forEach(e => g += `<circle cx="${(NODES[e.a].x + NODES[e.b].x) / 2}" cy="${(NODES[e.a].y + NODES[e.b].y) / 2}" r="8" fill="#ef4b4b" pointer-events="none"><animate attributeName="r" values="8;30" dur="1.8s" repeatCount="indefinite"/><animate attributeName="opacity" values=".55;0" dur="1.8s" repeatCount="indefinite"/></circle>`);   // pulsing hotspot on high-risk roads
+  state.routes.forEach((r, i) => { if (i !== state.sel) g += `<polyline data-r="${i}" points="${r.nodes.map(P).join(" ")}" fill="none" stroke="${colorOf(r.score)}" stroke-opacity=".4" stroke-width="7" stroke-linejoin="round" stroke-linecap="round" style="cursor:pointer" data-tip="Click to select this route"/>`; });
+  const r = state.routes[state.sel];
+  if (r) {
+    const pts = r.nodes.map(P).join(" ");
+    g += `<polyline data-r="${state.sel}" points="${pts}" fill="none" stroke="${colorOf(r.score)}" stroke-width="9" stroke-linejoin="round" stroke-linecap="round" pathLength="1" class="draw" filter="url(#glow)" pointer-events="none"/>`;
+    g += `<polyline points="${pts}" fill="none" stroke="#0d1320" stroke-opacity=".7" stroke-width="2" stroke-linecap="round" class="flow" pointer-events="none"/>`;
+    if (!REDUCED) {   // three glowing "vehicles" loop along the route; negative begin offsets stagger them
+      const d = "M" + r.nodes.map(P).join(" L"), dur = Math.max(3, r.len / 80);
+      for (let i = 0; i < 3; i++) g += `<circle r="5.5" fill="#fff" filter="url(#glow)" pointer-events="none"><animateMotion dur="${dur}s" begin="${-i * dur / 3}s" repeatCount="indefinite" path="${d}"/></circle>`;
+    }
+  }
+  Object.entries(NODES).forEach(([k, n]) => {
+    const role = k === $("#start").value ? "#3ecf8e" : k === $("#end").value ? "#ef4b4b" : "#8d9ab5";
+    g += `<g class="node" data-n="${k}" data-tip="${n.n}: choose this after selecting a map-pick button"><circle cx="${n.x}" cy="${n.y}" r="22" fill="transparent"/>` +
+      (role !== "#8d9ab5" && !REDUCED ? `<circle cx="${n.x}" cy="${n.y}" r="13" fill="none" stroke="${role}" pointer-events="none"><animate attributeName="r" values="13;30" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values=".8;0" dur="2s" repeatCount="indefinite"/></circle>` : "") +
+      `<circle class="nd" cx="${n.x}" cy="${n.y}" r="${role === "#8d9ab5" ? 9 : 13}" fill="#0d1320" stroke="${role}" stroke-width="3.5"/>`;
+    g += `<text x="${n.x}" y="${n.y - 20}" text-anchor="middle" fill="#e8edf7" font-size="14" font-family="DM Sans,system-ui,sans-serif" font-weight="600" paint-order="stroke" stroke="#0a111e" stroke-width="4">${n.n}</text></g>`;
+  });
+  $("#map").innerHTML = g;
+  $("#map").querySelectorAll("[data-r]").forEach(el => el.addEventListener("click", () => { state.sel = +el.dataset.r; render(); }));
+}
+function renderRoutes() {
+  const names = ["Shortest", "Alternative 1", "Alternative 2"];
+  const best = state.routes.reduce((m, r, i, a) => r.score < a[m].score ? i : m, 0);
+  $("#routes").innerHTML = state.routes.map((r, i) => `
+    <button class="route" style="--c:${colorOf(r.score)}" data-i="${i}" aria-pressed="${i === state.sel}">
+      <b>${names[i]}</b><small>via ${r.nodes.slice(1, -1).map(n => NODES[n].n).join(", ") || "direct"}</small>
+      <small>~${(r.len / 100).toFixed(1)} km (hypothetical) | simulated ${Math.round(r.score * 100)}% (${band(r.score)})</small><div class="meter" style="--w:${r.score * 100}%"><i></i></div>${i === best && state.routes.length > 1 ? '<em class="best">Lowest simulated risk</em>' : ""}
+    </button>`).join("") || `<p class="sub">Pick two different locations to see routes.</p>`;
+  $("#routes").querySelectorAll(".route").forEach(b => b.addEventListener("click", () => { state.sel = +b.dataset.i; render(); }));
+  const r = state.routes[state.sel];
+  $("#segs").innerHTML = r ? `<p class="sub" style="margin:4px 0">Segments of the selected route. Pick one to load its simulated road conditions.</p>` +
+    r.es.map((e, i) => `<button class="seg" style="--i:${i}" data-i="${i}"><span>${NODES[r.nodes[i]].n} to ${NODES[r.nodes[i + 1]].n}<br><small>${e.c.road_type}, ${e.c.num_lanes} lanes, speed limit ${e.c.speed_limit}, ${e.c.lighting}, ${e.c.weather}</small></span><span class="badge" style="--c:${colorOf(e.score)}">${Math.round(e.score * 100)}% sim</span></button>`).join("") : "";
+  $("#segs").querySelectorAll(".seg").forEach(b => b.addEventListener("click", () => { writeForm(r.es[+b.dataset.i].c); predict(); }));
+  $("#routes").querySelectorAll(".route").forEach(b => { b.onmouseenter = () => dimRoutes(+b.dataset.i); b.onmouseleave = () => dimRoutes(null); });   // hover a card: other routes fade
+  if (r) $("#segs").querySelectorAll(".seg").forEach(b => { const k = EDGES.indexOf(r.es[+b.dataset.i]); b.onmouseenter = () => hotEdge(k, true); b.onmouseleave = () => hotEdge(k, false); });
+}
+function render() { drawMap(); renderRoutes(); }
+function setPickTarget(target) {
+  state.pickTarget = target;
+  $("#pickStart").classList.toggle("active", target === "start");
+  $("#pickEnd").classList.toggle("active", target === "end");
+  $("#pickStart").setAttribute("aria-pressed", String(target === "start"));
+  $("#pickEnd").setAttribute("aria-pressed", String(target === "end"));
+  $("#pickHint").textContent = target ? `Choose a point on the map for the ${target === "start" ? "starting point" : "destination"}.` : "Choose a map-pick button, then select a point on the map.";
+  $("#mapwrap").classList.toggle("picking", Boolean(target));
+}
+function recompute() {
+  const s = $("#start").value, t = $("#end").value;
+  state.routes = s === t ? [] : findRoutes(s, t); state.sel = 0; render();
+}
+
+/* ---- init ---- */
+function init() {
+  const opts = Object.entries(NODES).map(([k, n]) => `<option value="${k}">${n.n}</option>`).join("");
+  $("#start").innerHTML = opts; $("#end").innerHTML = opts;
+  $("#start").value = "A"; $("#end").value = "F";
+  buildForm(); writeForm(DEFAULTS); setMode(); recompute();
+  $("#start").onchange = $("#end").onchange = recompute;
+  $("#swap").onclick = () => { const s = $("#start").value; $("#start").value = $("#end").value; $("#end").value = s; recompute(); };
+  $("#predict").onclick = predict;
+  $("#demo").onclick = () => { writeForm(DEMO_SCENARIO); predict(); };
+  $("#reset").onclick = () => { writeForm(DEFAULTS); resetResult(); };
+  // live prediction: any form change re-runs predict() after a 250 ms pause (debounce)
+  let t; $("#fields").addEventListener("input", () => { updateFx(); if ($("#live").checked) { clearTimeout(t); t = setTimeout(predict, 250); } });
+  // Explicit map-pick controls make endpoint selection discoverable without modifier keys.
+  $("#pickStart").onclick = () => setPickTarget("start");
+  $("#pickEnd").onclick = () => setPickTarget("end");
+  // Map clicks set whichever endpoint the user explicitly chose; roads load example conditions.
+  $("#map").addEventListener("click", ev => {
+    const n = ev.target.closest("[data-n]"), e = ev.target.closest("[data-e]");
+    if (n && state.pickTarget) {
+      $(state.pickTarget === "start" ? "#start" : "#end").value = n.dataset.n;
+      setPickTarget(null); recompute();
+    } else if (e) { writeForm(EDGES[+e.dataset.e].c); predict(); }
+  });
+  // one tooltip element follows the cursor over anything with a data-tip attribute
+  const tip = $("#tip"), wrap = $("#mapwrap");
+  $("#map").addEventListener("mousemove", ev => {
+    const el = ev.target.closest("[data-tip]"); tip.style.opacity = el ? 1 : 0; if (!el) return;
+    const b = wrap.getBoundingClientRect(); tip.textContent = el.dataset.tip;
+    tip.style.transform = `translate(${Math.max(4, Math.min(ev.clientX - b.left + 14, b.width - tip.offsetWidth - 8))}px,${ev.clientY - b.top + 16}px)`;
+  });
+  $("#map").addEventListener("mouseleave", () => tip.style.opacity = 0);
+  // cursor position drives the particles and the glow that follows the pointer inside each card
+  addEventListener("pointermove", ev => {
+    mouse.x = ev.clientX; mouse.y = ev.clientY;
+    const c = ev.target.closest && ev.target.closest(".card");
+    if (c) { const b = c.getBoundingClientRect(); c.style.setProperty("--mx", ev.clientX - b.left + "px"); c.style.setProperty("--my", ev.clientY - b.top + "px"); }
+  });
+  // click ripple on buttons
+  document.addEventListener("click", ev => {
+    const b = ev.target.closest(".btn"); if (!b || REDUCED) return;
+    const r = b.getBoundingClientRect(), d = Math.max(r.width, r.height) * 2, s = document.createElement("span");
+    s.className = "rip"; s.style.cssText = `width:${d}px;height:${d}px;left:${ev.clientX - r.left - d / 2}px;top:${ev.clientY - r.top - d / 2}px`;
+    b.appendChild(s); setTimeout(() => s.remove(), 650);
+  });
+  // map covers the screen: "slice" fills it on typical landscape screens, "meet" keeps every node visible on tall/ultrawide ones
+  const fit = () => { const ar = innerWidth / innerHeight; $("#map").setAttribute("preserveAspectRatio", ar > 1.3 && ar < 2.2 ? "xMidYMid slice" : "xMidYMid meet"); };
+  addEventListener("resize", fit); fit();
+  // reveal cards as they scroll into view; track whether the gauge is visible
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) e.target.classList.add("in"); }), { threshold: .25 });
+  document.querySelectorAll(".reveal").forEach(el => io.observe(el));
+  new IntersectionObserver(es => { es.forEach(e => vis[e.target.id] = e.isIntersecting); syncMini(); }, { threshold: .3 }).observe($("#risk"));
+  $("#mini").onclick = () => $("#risk").scrollIntoView({ behavior: "smooth" });
+  startBg();
+  let previousY = window.scrollY;
+  window.addEventListener("scroll", () => {
+    const currentY = window.scrollY;
+    const header = $("#siteHeader");
+    if (currentY < 36 || currentY < previousY - 2) header.classList.remove("is-hidden");
+    else if (currentY > previousY + 3) header.classList.add("is-hidden");
+    previousY = currentY;
+  }, { passive: true });
+  if (!USE_MOCK_DATA) connectBackend();
+}
+init();
+</script>
+</body>
+</html>
