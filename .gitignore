@@ -17,5 +17,3 @@ Thumbs.db
 # Excel temporary lock files
 ~$*
 
-# Generated static output for Netlify
-netlify-build/

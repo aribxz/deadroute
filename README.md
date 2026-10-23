@@ -74,14 +74,3 @@ Re-run the baseline comparison or controlled XGBoost optimization with:
 
 The scripts write their result sheets, summaries, and model artifacts under `ml/`.
 
-## Deploy the frontend on Netlify
-
-Netlify hosts the browser UI as a static site; it does not run the Flask/XGBoost API. Keep a working Python API deployed on a Python-capable host, then connect it to this site:
-
-1. Import this GitHub repository into Netlify. Keep the **Base directory** at the repository root.
-2. The included `netlify.toml` sets the build command to `node scripts/netlify_build.js` and publish directory to `netlify-build`.
-3. In Netlify site environment variables, set `DEADROUTE_API_BASE` to the API's public HTTPS origin, for example `https://your-api-host.example` (no `/predict` suffix or trailing path).
-4. Deploy. The build generates the static frontend and a same-origin `/api/*` proxy to the Python API, so browser CORS configuration is not needed.
-5. Verify the Netlify URL loads the page and `https://<api-origin>/health` reports `"status":"ok"`; submit a prediction to confirm the proxy works.
-
-The build intentionally stops with a clear error if `DEADROUTE_API_BASE` is missing or invalid. The current Render deployment must be healthy before Netlify predictions can work; deploying only the static site does not include the saved model or Flask server. Netlify proxy requests have a 26-second timeout, which is sufficient for this prediction endpoint.

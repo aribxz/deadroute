@@ -1,3 +1,0 @@
-[build]
-  command = "node scripts/netlify_build.js"
-  publish = "netlify-build"
