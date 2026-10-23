@@ -20,7 +20,7 @@ From the project root, create an environment and install dependencies:
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
-.\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
 Start the backend in one terminal:
@@ -45,7 +45,7 @@ Create two services connected to this repository and the `main` branch.
 ### Flask backend — Web Service
 
 - **Root Directory:** leave blank (repository root)
-- **Build Command:** `pip install -r backend/requirements.txt`
+- **Build Command:** `pip install -r requirements.txt`
 - **Start Command:** `gunicorn --chdir backend --bind 0.0.0.0:$PORT app:app`
 - **Health Check Path:** `/health`
 - **Environment Variable:** `FRONTEND_ORIGIN` = the exact public URL of the Static Site, such as `https://deadroute-ui.onrender.com`
