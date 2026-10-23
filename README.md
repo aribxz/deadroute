@@ -70,7 +70,7 @@ With dependencies installed, run from the project root:
 .\.venv\Scripts\python.exe backend\test_api.py
 ```
 
-The API exposes `/health`, `/metadata`, and `/predict`.
+The backend root (`/`) returns an API status and endpoint list. The API also exposes `/health`, `/metadata`, and `/predict`; the browser frontend is served separately.
 
 ## Model and evaluation
 

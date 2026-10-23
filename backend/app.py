@@ -83,6 +83,21 @@ def unavailable_response():
     return jsonify({'error': 'The trained model is not available.'}), 503
 
 
+@app.get('/')
+def index():
+    healthy = model_is_loaded()
+    return jsonify({
+        'service': 'DeadRoute prediction API',
+        'status': 'ok' if healthy else 'error',
+        'message': 'The browser frontend is hosted separately from this API.',
+        'endpoints': {
+            'health': '/health',
+            'metadata': '/metadata',
+            'predict': '/predict',
+        },
+    }), (200 if healthy else 503)
+
+
 @app.get('/health')
 def health():
     healthy = model_is_loaded()
