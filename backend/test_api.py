@@ -19,15 +19,14 @@ class PredictionApiTests(unittest.TestCase):
     def setUp(self):
         self.client = backend.app.test_client()
 
-    def test_root_describes_api_and_frontend(self):
+    def test_root_serves_frontend_and_config(self):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
-        body = response.get_json()
-        self.assertEqual(body['service'], 'DeadRoute prediction API')
-        self.assertIn('separately', body['message'])
-        self.assertEqual(body['endpoints']['health'], '/health')
-        self.assertEqual(body['endpoints']['metadata'], '/metadata')
-        self.assertEqual(body['endpoints']['predict'], '/predict')
+        self.assertIn('text/html', response.content_type)
+        self.assertIn(b'DeadRoute', response.data)
+        config = self.client.get('/config.js')
+        self.assertEqual(config.status_code, 200)
+        self.assertIn(b'DEADROUTE_API_BASE', config.data)
 
     def test_health_reports_loaded_model(self):
         response = self.client.get('/health')

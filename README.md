@@ -6,7 +6,7 @@ DeadRoute is an AI Build Arena demonstration of road accident-risk prediction. I
 
 ## Project layout
 
-- `frontend/` — standalone browser UI (`index.html`) and API URL configuration (`config.js`)
+- `frontend/` — browser UI assets (`index.html`, `config.js`), served by Flask at `/`
 - `backend/` — Flask prediction API, API checks, and Python requirements
 - `ml/` — training and optimization scripts, saved model artifacts, experiment workbooks, and run summaries
 - `dataset/` — training and unlabeled test CSVs plus the dataset audit
@@ -23,44 +23,31 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-Start the backend in one terminal:
+Start the full app from the project root:
 
 ```powershell
-.\.venv\Scripts\python.exe backend\app.py
+.\.venv\Scripts\python.exe app.py
 ```
 
-Start the static frontend in a second terminal:
+Optional: start a separate static frontend for UI-only work in a second terminal:
 
 ```powershell
 Set-Location frontend
 py -m http.server 8000
 ```
 
-Open <http://127.0.0.1:8000/>. The page uses Google Fonts when available; the prediction API itself runs locally.
+With the app running, open <http://127.0.0.1:5000/> to use the combined frontend and API. If you use the optional static server, open <http://127.0.0.1:8000/>; its config points API requests to the local backend on port 5000. Google Fonts load when internet access is available.
 
 ## Deploy on Render
 
-Create two services connected to this repository and the `main` branch.
-
-### Flask backend — Web Service
+Create one **Web Service** connected to this repository and the `main` branch. Flask serves both the browser UI at `/` and the prediction API from the same service.
 
 - **Root Directory:** leave blank (repository root)
 - **Build Command:** `pip install -r requirements.txt`
-- **Start Command:** `gunicorn --chdir backend --bind 0.0.0.0:$PORT app:app`
+- **Start Command:** `python app.py`
 - **Health Check Path:** `/health`
-- **Environment Variable:** `FRONTEND_ORIGIN` = the exact public URL of the Static Site, such as `https://deadroute-ui.onrender.com`
 
-The backend accepts local development origins and the single exact origin configured in `FRONTEND_ORIGIN`.
-
-### Browser frontend — Static Site
-
-- **Root Directory:** leave blank (repository root)
-- **Build Command:** leave blank
-- **Publish Directory:** `frontend`
-
-After creating the backend, copy its public `https://...onrender.com` URL into `frontend/config.js` as `window.DEADROUTE_API_BASE`. Then create or redeploy the Static Site. Set `FRONTEND_ORIGIN` on the backend to the Static Site’s exact public URL and redeploy the backend if you add or change that URL.
-
-Render web services must bind to `0.0.0.0` and Render’s assigned `$PORT`; the start command above does that. The backend must be a Web Service, while the static HTML frontend is a Static Site.
+The root `app.py` starts the app on `127.0.0.1:5000` locally. On Render, it uses the provided `PORT` and binds to `0.0.0.0`; Waitress is used as the WSGI server after dependencies install. Open the Web Service URL to see the frontend. Its API calls use the same origin, so no separate Static Site or frontend CORS setting is needed.
 
 ## Verify the API
 
@@ -70,7 +57,7 @@ With dependencies installed, run from the project root:
 .\.venv\Scripts\python.exe backend\test_api.py
 ```
 
-The backend root (`/`) returns an API status and endpoint list. The API also exposes `/health`, `/metadata`, and `/predict`; the browser frontend is served separately.
+The app is served at `/`; API endpoints are `/health`, `/metadata`, and `/predict`.
 
 ## Model and evaluation
 

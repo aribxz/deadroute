@@ -14,10 +14,11 @@ if LOCAL_PACKAGES.is_dir():
 import joblib
 import numpy as np
 import pandas as pd
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 
 MODEL_PATH = ROOT.parent / 'ml' / 'best_model.pkl'
 DATA_PATH = ROOT.parent / 'dataset' / 'train.csv'
+FRONTEND_DIR = ROOT.parent / 'frontend'
 FRONTEND_ORIGIN = os.environ.get('FRONTEND_ORIGIN', '').strip().rstrip('/')
 DATA_NOTICE = 'Model trained on a synthetic road accident risk dataset.'
 SCORE_INTERPRETATION = 'Model-predicted risk score, not a calibrated real-world accident probability.'
@@ -50,7 +51,7 @@ except Exception as exc:  # Keep API available to report unhealthy state, withou
     app_logger = None
     print(f'Model loading failed: {type(exc).__name__}: {exc}', file=sys.stderr)
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path='')
 
 
 def model_is_loaded() -> bool:
@@ -85,17 +86,7 @@ def unavailable_response():
 
 @app.get('/')
 def index():
-    healthy = model_is_loaded()
-    return jsonify({
-        'service': 'DeadRoute prediction API',
-        'status': 'ok' if healthy else 'error',
-        'message': 'The browser frontend is hosted separately from this API.',
-        'endpoints': {
-            'health': '/health',
-            'metadata': '/metadata',
-            'predict': '/predict',
-        },
-    }), (200 if healthy else 503)
+    return send_from_directory(FRONTEND_DIR, 'index.html')
 
 
 @app.get('/health')
@@ -201,6 +192,18 @@ def predict():
         return jsonify({'error': 'Prediction could not be generated.'}), 500
 
 
+def run_app():
+    # Render supplies PORT; bind publicly there, but keep local development loopback-only.
+    port = int(os.environ.get('PORT', '5000'))
+    host = '0.0.0.0' if os.environ.get('PORT') else '127.0.0.1'
+    try:
+        from waitress import serve
+    except ImportError:
+        # Keeps the project runnable in the existing local environment.
+        app.run(host=host, port=port, debug=False)
+    else:
+        serve(app, host=host, port=port)
+
+
 if __name__ == '__main__':
-    # Local hackathon development only; use a production WSGI server when deploying.
-    app.run(host='127.0.0.1', port=5000, debug=False)
+    run_app()
