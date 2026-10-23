@@ -1,17 +1,15 @@
 # DeadRoute
 
-DeadRoute is an AI Build Arena demonstration of road accident-risk prediction. It combines a trained regression model with a small Flask API and a browser-based route visualization.
+DeadRoute is an AI Build Arena demonstration of road accident-risk prediction. It combines a trained regression model with a Flask API and a browser-based route visualization.
 
 > **Demo limitation:** The dataset and route network are synthetic. Map roads, locations, and simulated road conditions are illustrative; the dataset contains no geographic coordinates. The displayed score is a model prediction on a 0–1 scale, not a calibrated real-world accident probability.
 
 ## Project layout
 
-- `frontend/` — standalone browser UI (`index.html`)
+- `frontend/` — standalone browser UI (`index.html`) and API URL configuration (`config.js`)
 - `backend/` — Flask prediction API, API checks, and Python requirements
 - `ml/` — training and optimization scripts, saved model artifacts, experiment workbooks, and run summaries
 - `dataset/` — training and unlabeled test CSVs plus the dataset audit
-
-The frontend expects the backend at `http://127.0.0.1:5000`.
 
 ## Run locally (Windows)
 
@@ -40,6 +38,30 @@ py -m http.server 8000
 
 Open <http://127.0.0.1:8000/>. The page uses Google Fonts when available; the prediction API itself runs locally.
 
+## Deploy on Render
+
+Create two services connected to this repository and the `main` branch.
+
+### Flask backend — Web Service
+
+- **Root Directory:** leave blank (repository root)
+- **Build Command:** `pip install -r backend/requirements.txt`
+- **Start Command:** `gunicorn --chdir backend --bind 0.0.0.0:$PORT app:app`
+- **Health Check Path:** `/health`
+- **Environment Variable:** `FRONTEND_ORIGIN` = the exact public URL of the Static Site, such as `https://deadroute-ui.onrender.com`
+
+The backend accepts local development origins and the single exact origin configured in `FRONTEND_ORIGIN`.
+
+### Browser frontend — Static Site
+
+- **Root Directory:** leave blank (repository root)
+- **Build Command:** leave blank
+- **Publish Directory:** `frontend`
+
+After creating the backend, copy its public `https://...onrender.com` URL into `frontend/config.js` as `window.DEADROUTE_API_BASE`. Then create or redeploy the Static Site. Set `FRONTEND_ORIGIN` on the backend to the Static Site’s exact public URL and redeploy the backend if you add or change that URL.
+
+Render web services must bind to `0.0.0.0` and Render’s assigned `$PORT`; the start command above does that. The backend must be a Web Service, while the static HTML frontend is a Static Site.
+
 ## Verify the API
 
 With dependencies installed, run from the project root:
@@ -48,7 +70,7 @@ With dependencies installed, run from the project root:
 .\.venv\Scripts\python.exe backend\test_api.py
 ```
 
-The API exposes `/health`, `/metadata`, and `/predict` on port 5000.
+The API exposes `/health`, `/metadata`, and `/predict`.
 
 ## Model and evaluation
 

@@ -305,12 +305,13 @@ footer span:last-child { color: var(--dim); }
 <button id="mini" class="glass" type="button" aria-label="Jump to predicted risk"><b id="miniNum">--</b><span id="miniLvl">No prediction yet</span></button>
 <footer><span>Arib</span><span>AI Build Arena Demo</span></footer>
 
+<script src="./config.js"></script>
 <script>
 /* =====================================================================
    1. CONFIGURATION  (the only block you should need to edit)
    ===================================================================== */
 const USE_MOCK_DATA = false;                         // live model predictions are the default
-const API_BASE = "http://127.0.0.1:5000";
+const API_BASE = (window.DEADROUTE_API_BASE || "http://127.0.0.1:5000").replace(/\/+$/, "");
 const API_URL = API_BASE + "/predict";
 const REQUEST_TIMEOUT_MS = 8000;
 const INCLUDE_NUM_REPORTED_ACCIDENTS = true;         // baseline artifact requires this feature

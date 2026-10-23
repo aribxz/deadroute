@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,7 @@ from flask import Flask, jsonify, request
 
 MODEL_PATH = ROOT.parent / 'ml' / 'best_model.pkl'
 DATA_PATH = ROOT.parent / 'dataset' / 'train.csv'
+FRONTEND_ORIGIN = os.environ.get('FRONTEND_ORIGIN', '').strip().rstrip('/')
 DATA_NOTICE = 'Model trained on a synthetic road accident risk dataset.'
 SCORE_INTERPRETATION = 'Model-predicted risk score, not a calibrated real-world accident probability.'
 
@@ -55,17 +57,21 @@ def model_is_loaded() -> bool:
     return model_artifact is not None
 
 
-def allowed_local_origin(origin: str) -> bool:
-    # Permit localhost and loopback development servers only, with optional port.
+def allowed_origin(origin: str) -> bool:
+    # Keep local development origins and allow the exact deployed frontend origin.
     from urllib.parse import urlparse
     parsed = urlparse(origin)
-    return parsed.scheme in {'http', 'https'} and parsed.hostname in {'localhost', '127.0.0.1'}
+    if parsed.scheme not in {'http', 'https'} or not parsed.hostname:
+        return False
+    if parsed.hostname in {'localhost', '127.0.0.1'}:
+        return True
+    return bool(FRONTEND_ORIGIN) and origin.rstrip('/') == FRONTEND_ORIGIN
 
 
 @app.after_request
 def add_local_cors(response):
     origin = request.headers.get('Origin')
-    if origin and allowed_local_origin(origin):
+    if origin and allowed_origin(origin):
         response.headers['Access-Control-Allow-Origin'] = origin
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
         response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'

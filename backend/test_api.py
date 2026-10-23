@@ -73,11 +73,19 @@ class PredictionApiTests(unittest.TestCase):
         response = self.client.post('/predict', data='{bad json', content_type='application/json')
         self.assertEqual(response.status_code, 400)
 
-    def test_local_cors_is_restricted(self):
-        ok = self.client.get('/health', headers={'Origin':'http://localhost:5500'})
-        bad = self.client.get('/health', headers={'Origin':'https://example.com'})
-        self.assertEqual(ok.headers.get('Access-Control-Allow-Origin'), 'http://localhost:5500')
-        self.assertIsNone(bad.headers.get('Access-Control-Allow-Origin'))
+    def test_local_and_configured_frontend_cors(self):
+        local = self.client.get('/health', headers={'Origin':'http://localhost:5500'})
+        self.assertEqual(local.headers.get('Access-Control-Allow-Origin'), 'http://localhost:5500')
+
+        previous = backend.FRONTEND_ORIGIN
+        try:
+            backend.FRONTEND_ORIGIN = 'https://deadroute-ui.onrender.com'
+            deployed = self.client.get('/health', headers={'Origin':'https://deadroute-ui.onrender.com'})
+            blocked = self.client.get('/health', headers={'Origin':'https://example.com'})
+            self.assertEqual(deployed.headers.get('Access-Control-Allow-Origin'), 'https://deadroute-ui.onrender.com')
+            self.assertIsNone(blocked.headers.get('Access-Control-Allow-Origin'))
+        finally:
+            backend.FRONTEND_ORIGIN = previous
 
 if __name__ == '__main__':
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(PredictionApiTests)
